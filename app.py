@@ -13,7 +13,6 @@ from reportlab.lib import colors
 # CONFIGURAÇÃO
 # ============================================================
 st.set_page_config(page_title="IRAH–Premier", layout="centered")
-
 tab_calc, tab_about = st.tabs(["🧮 Avaliação Assistencial", "📘 Sobre o IRAH–Premier"])
 
 
@@ -22,6 +21,7 @@ tab_calc, tab_about = st.tabs(["🧮 Avaliação Assistencial", "📘 Sobre o IR
 # ============================================================
 # Fugulin (modelo descritivo 1–4 por domínio)
 # Observação: há variações institucionais. Este é um modelo operacional, legível e auditável.
+# Inclui 12 itens: + Integridade cutâneo-mucosa, Curativo, Tempo de curativo.
 FUGULIN_SCALE = {
     "Estado mental": {
         1: "Lúcido, orientado",
@@ -77,6 +77,24 @@ FUGULIN_SCALE = {
         3: "Múltiplas medicações EV",
         4: "Cuidados complexos (ex.: drogas vasoativas)",
     },
+    "Integridade cutâneo-mucosa": {
+        1: "Íntegra",
+        2: "Risco/alteração leve (ex.: hiperemia, pele frágil)",
+        3: "Lesão superficial / UPP estágio 1–2 / dermatite importante",
+        4: "Lesão extensa / UPP estágio 3–4 / ferida complexa",
+    },
+    "Curativo": {
+        1: "Sem curativo",
+        2: "Curativo simples (baixa complexidade)",
+        3: "Curativo moderado (ex.: múltiplas lesões / técnica específica)",
+        4: "Curativo complexo (ex.: grande área / terapia avançada)",
+    },
+    "Tempo de curativo": {
+        1: "< 5 min / não se aplica",
+        2: "5–15 min",
+        3: "16–30 min",
+        4: "> 30 min",
+    },
 }
 
 # Charlson (pesos clássicos; checklist)
@@ -119,6 +137,35 @@ def charlson_age_points(age: int) -> int:
 
 
 # ============================================================
+# FUGULIN – CLASSIFICAÇÃO (conforme solicitado)
+# ============================================================
+def fugulin_classification(score: int) -> str:
+    """
+    Classificação do Fugulin (informada pelo usuário):
+    - Intensivo: >34
+    - Semi-intensivo: 28 a 34
+    - Alta dependência: 23 a 28  (há sobreposição em 28; aqui adotamos Semi-intensivo em 28–34)
+    - Intermediário: 18 a 22
+    - Mínimo: 12 a 17
+
+    Regra aplicada para evitar ambiguidade:
+    - 28–34 => Semi-intensivo
+    - 23–27 => Alta dependência
+    """
+    if score > 34:
+        return "Intensivo"
+    if 28 <= score <= 34:
+        return "Semi-intensivo"
+    if 23 <= score <= 27:
+        return "Alta dependência"
+    if 18 <= score <= 22:
+        return "Intermediário"
+    if 12 <= score <= 17:
+        return "Mínimo"
+    return "Fora da faixa esperada"
+
+
+# ============================================================
 # NORMALIZAÇÕES (0–100) + PESOS
 # ============================================================
 def normalize_charlson(charlson_total: int) -> float:
@@ -130,19 +177,28 @@ def normalize_charlson(charlson_total: int) -> float:
 
 def normalize_fugulin(fugulin_total: int) -> float:
     """
-    Fugulin: mapeamento em 0/25/50/75/100 por faixas usuais (PCS).
-    <=14: 0 | 15–20: 25 | 21–26: 50 | 27–31: 75 | >31: 100
+    Normalização Fugulin (0–100) baseada nas faixas operacionais:
+    - Mínimo (12–17) -> 0
+    - Intermediário (18–22) -> 25
+    - Alta dependência (23–27) -> 50
+    - Semi-intensivo (28–34) -> 75
+    - Intensivo (>34) -> 100
+
+    (Adotando 28 como Semi-intensivo para resolver a sobreposição descrita no texto.)
     """
-    s = float(fugulin_total or 0)
-    if s <= 14:
-        return 0.0
-    if s <= 20:
-        return 25.0
-    if s <= 26:
-        return 50.0
-    if s <= 31:
+    s = int(fugulin_total or 0)
+    if s > 34:
+        return 100.0
+    if 28 <= s <= 34:
         return 75.0
-    return 100.0
+    if 23 <= s <= 27:
+        return 50.0
+    if 18 <= s <= 22:
+        return 25.0
+    if 12 <= s <= 17:
+        return 0.0
+    # fora da faixa (ex.: score <12) — mantém 0 para não inflar risco
+    return 0.0
 
 
 def normalize_mrc(mrc_total: int) -> float:
@@ -252,6 +308,7 @@ def build_pdf(df: pd.DataFrame, summary: dict) -> bytes:
         "Risco",
         "Gatilho_Alto",
         "Fugulin_total",
+        "Fugulin_classificacao",
         "Charlson_total",
         "MRC",
         "ASG",
@@ -273,7 +330,7 @@ def build_pdf(df: pd.DataFrame, summary: dict) -> bytes:
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
                 ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("FONTSIZE", (0, 0), (-1, -1), 7.5),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
             ]
@@ -335,7 +392,17 @@ with tab_calc:
             fugulin_scores[domain] = int(label_map[selected_label])
 
     fugulin_total = int(sum(fugulin_scores.values()))
-    st.info(f"**Fugulin total:** {fugulin_total}")
+    fugulin_cat = fugulin_classification(fugulin_total)
+
+    st.info(f"**Fugulin total:** {fugulin_total}  |  **Classificação:** {fugulin_cat}")
+
+    st.markdown(
+        """<small>
+        Classificação Fugulin (operacional): <br>
+        • Mínimo (12–17) • Intermediário (18–22) • Alta dependência (23–28) • Semi-intensivo (28–34) • Intensivo (&gt;34)
+        </small>""",
+        unsafe_allow_html=True,
+    )
 
     st.markdown("---")
 
@@ -385,7 +452,13 @@ with tab_calc:
     fois_label = st.selectbox("FOIS", list(fois_label_map.keys()), index=6, key="fois_input")
     fois = int(fois_label_map[fois_label])
 
-    poly = st.number_input("Polifarmácia (nº de medicamentos contínuos)", min_value=0, max_value=50, step=1, key="poly_input")
+    poly = st.number_input(
+        "Polifarmácia (nº de medicamentos contínuos)",
+        min_value=0,
+        max_value=50,
+        step=1,
+        key="poly_input",
+    )
 
     # -----------------------------
     # CÁLCULO IRAH–Premier
@@ -471,6 +544,7 @@ with tab_calc:
                     "Risco": risco,
                     "Gatilho_Alto": "SIM" if trigger_high else "",
                     "Fugulin_total": int(fugulin_total),
+                    "Fugulin_classificacao": fugulin_cat,
                     "Fugulin_detalhes": fugulin_scores,  # dicionário por domínio
                     "Charlson_total": int(charlson_total),
                     "Charlson_base": int(charlson_base),
@@ -512,6 +586,7 @@ with tab_calc:
                     "Risco",
                     "Gatilho_Alto",
                     "Fugulin_total",
+                    "Fugulin_classificacao",
                     "Charlson_total",
                     "MRC",
                     "ASG",

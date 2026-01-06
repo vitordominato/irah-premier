@@ -575,29 +575,63 @@ with tab_calc:
     # TABELA + EXPORTAÇÕES
     # -----------------------------
     if st.session_state.patients:
-        df = pd.DataFrame(st.session_state.patients).sort_values("Leito")
+        df = pd.DataFrame(st.session_state.patients)
 
-        st.dataframe(
-            df[
-                [
-                    "Leito",
-                    "Iniciais",
-                    "IRAH_Premier",
-                    "Risco",
-                    "Gatilho_Alto",
-                    "Fugulin_total",
-                    "Fugulin_classificacao",
-                    "Charlson_total",
-                    "MRC",
-                    "ASG",
-                    "FOIS",
-                    "Polifarmacia",
-                ]
-            ],
-            use_container_width=True,
-        )
+        # Caso haja dados antigos no session_state (schema anterior), garantimos as colunas esperadas
+        display_cols = [
+            "Leito",
+            "Iniciais",
+            "IRAH_Premier",
+            "Risco",
+            "Gatilho_Alto",
+            "Fugulin_total",
+            "Fugulin_classificacao",
+            "Charlson_total",
+            "MRC",
+            "ASG",
+            "FOIS",
+            "Polifarmacia",
+        ]
 
-        total = int(len(df))
+        # Se o dataframe estiver vazio ou sem colunas válidas, orienta o usuário a limpar a lista
+        if df.empty or len(df.columns) == 0:
+            st.warning(
+                "A lista da clínica está vazia ou em formato inválido (provavelmente dados antigos do app). "
+                "Clique em **♻️ Limpar lista** e recadastre os pacientes."
+            )
+        else:
+            # Normaliza tipos e cria colunas ausentes com valor padrão
+            if "Leito" in df.columns:
+                df["Leito"] = pd.to_numeric(df["Leito"], errors="coerce")
+            df = df.sort_values("Leito", na_position="last")
+
+            df_display = df.reindex(columns=display_cols, fill_value="")
+            st.dataframe(df_display, use_container_width=True)
+
+        # Garantia de colunas para métricas e exportações
+        metric_cols = [
+            "Leito",
+            "Iniciais",
+            "IRAH_Premier",
+            "Risco",
+            "Gatilho_Alto",
+            "Fugulin_total",
+            "Fugulin_classificacao",
+            "Charlson_total",
+            "MRC",
+            "ASG",
+            "FOIS",
+            "Polifarmacia",
+            "Fugulin_detalhes",
+            "Charlson_detalhes",
+        ]
+        df = df.reindex(columns=metric_cols, fill_value="")
+        # Tipos
+        df["IRAH_Premier"] = pd.to_numeric(df["IRAH_Premier"], errors="coerce")
+        df["Leito"] = pd.to_numeric(df["Leito"], errors="coerce")
+        df = df.sort_values("Leito", na_position="last")
+
+total = int(len(df))
         baixo = int((df["Risco"] == "Baixo").sum())
         moderado = int((df["Risco"] == "Moderado").sum())
         alto = int((df["Risco"] == "Alto").sum())

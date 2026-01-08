@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import json
 from io import BytesIO
 
 # PDF (ReportLab)
@@ -8,19 +9,15 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 
-
 # ============================================================
 # CONFIGURAÇÃO
 # ============================================================
 st.set_page_config(page_title="IRAH–Premier", layout="centered")
 tab_calc, tab_about = st.tabs(["🧮 Avaliação Assistencial", "📘 Sobre o IRAH–Premier"])
 
-
 # ============================================================
 # ESCALAS
 # ============================================================
-# Fugulin (12 itens) — textos incluídos
-# Obs.: há variações institucionais; este template é operacional e auditável.
 FUGULIN_SCALE = {
     "Estado mental": {
         1: "Lúcido, orientado",
@@ -96,7 +93,6 @@ FUGULIN_SCALE = {
     },
 }
 
-# Charlson (pesos clássicos) — checklist
 CHARLSON_ITEMS = {
     "Infarto do miocárdio": 1,
     "Insuficiência cardíaca congestiva": 1,
@@ -129,22 +125,19 @@ FOIS_LABEL_MAP = {
     "7 – Ingestão oral plena (sem restrições)": 7,
 }
 
-# Pesos do IRAH–Premier
 WEIGHTS = {
     "Charlson": 0.20,
     "Fugulin": 0.20,
     "MRC": 0.15,
     "ASG": 0.15,
     "FOIS": 0.15,
-    "Polifarmácia": 0.15,
+    "Polifarmacia": 0.15,
 }
-
 
 # ============================================================
 # FUNÇÕES
 # ============================================================
 def charlson_age_points(age: int) -> int:
-    # Ajuste por idade (opcional): 50–59:+1 | 60–69:+2 | 70–79:+3 | >=80:+4
     if age is None:
         return 0
     if age >= 80:
@@ -159,12 +152,7 @@ def charlson_age_points(age: int) -> int:
 
 
 def fugulin_classification(score: int) -> str:
-    # Faixas solicitadas (com resolução da sobreposição do 28):
-    # - Intensivo: >34
-    # - Semi-intensivo: 28–34
-    # - Alta dependência: 23–27  (28 fica em semi-intensivo para respeitar "28 a 34")
-    # - Intermediário: 18–22
-    # - Mínimo: 12–17
+    # Regra operacional (resolve sobreposição do 28)
     if score > 34:
         return "Intensivo"
     if 28 <= score <= 34:
@@ -175,11 +163,10 @@ def fugulin_classification(score: int) -> str:
         return "Intermediário"
     if 12 <= score <= 17:
         return "Mínimo"
-    return "Fora da faixa esperada"
+    return "Fora da faixa"
 
 
 def normalize_fugulin(score: int) -> float:
-    # Normalização 0–100 baseada nas faixas acima
     if score > 34:
         return 100.0
     if 28 <= score <= 34:
@@ -191,34 +178,28 @@ def normalize_fugulin(score: int) -> float:
     return 0.0
 
 
-def normalize_charlson(charlson_total: int) -> float:
-    # Normalização contínua com cap em 13
-    c = float(charlson_total or 0)
+def normalize_charlson(total: int) -> float:
+    c = float(total or 0)
     c = max(0.0, min(c, 13.0))
     return (c / 13.0) * 100.0
 
 
 def normalize_mrc(mrc_total: int) -> float:
-    # MRC 0–60: risco = (60 - mrc)/60*100
     m = float(mrc_total or 0)
     m = max(0.0, min(m, 60.0))
     return ((60.0 - m) / 60.0) * 100.0
 
 
 def normalize_asg(asg_label: str) -> float:
-    # ASG: A=0, B=50, C=100
-    mapping = {"A": 0.0, "B": 50.0, "C": 100.0}
-    return float(mapping.get(asg_label, 0.0))
+    return {"A": 0.0, "B": 50.0, "C": 100.0}.get(asg_label, 0.0)
 
 
 def normalize_fois(fois: int) -> float:
-    # FOIS: 1→100, 2→90, 3→80, 4→60, 5→40, 6→20, 7→0
     mapping = {1: 100, 2: 90, 3: 80, 4: 60, 5: 40, 6: 20, 7: 0}
     return float(mapping.get(int(fois), 0.0))
 
 
-def normalize_polypharmacy(n_meds: int) -> float:
-    # Polifarmácia: ≤4=0; 5–6=25; 7–9=50; 10–12=75; ≥13=100
+def normalize_poly(n_meds: int) -> float:
     n = int(n_meds or 0)
     if n <= 4:
         return 0.0
@@ -232,7 +213,6 @@ def normalize_polypharmacy(n_meds: int) -> float:
 
 
 def classify(score_0_100: float, trigger_high: bool) -> str:
-    # 3 faixas + override por gatilho sentinela
     if trigger_high:
         return "Alto"
     if score_0_100 >= 67:
@@ -242,7 +222,22 @@ def classify(score_0_100: float, trigger_high: bool) -> str:
     return "Baixo"
 
 
-def build_pdf(df: pd.DataFrame, summary: dict) -> bytes:
+def safe_json_dumps(obj) -> str:
+    try:
+        return json.dumps(obj, ensure_ascii=False)
+    except Exception:
+        return "{}"
+
+
+def safe_json_loads(s: str):
+    try:
+        return json.loads(s) if s else {}
+    except Exception:
+        return {}
+
+
+def build_pdf(df_simple: pd.DataFrame, summary: dict) -> bytes:
+    """Gera PDF apenas com colunas simples (sem dict/list), para evitar falhas."""
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -253,8 +248,8 @@ def build_pdf(df: pd.DataFrame, summary: dict) -> bytes:
         bottomMargin=24,
     )
     styles = getSampleStyleSheet()
-
     elements = []
+
     elements.append(Paragraph("IRAH–Premier — Relatório Assistencial", styles["Title"]))
     elements.append(Spacer(1, 8))
     elements.append(Paragraph("Resumo da unidade (20 leitos)", styles["Heading2"]))
@@ -285,22 +280,8 @@ def build_pdf(df: pd.DataFrame, summary: dict) -> bytes:
     elements.append(Paragraph("Lista de pacientes", styles["Heading2"]))
     elements.append(Spacer(1, 6))
 
-    cols = [
-        "Leito",
-        "Iniciais",
-        "IRAH_Premier",
-        "Risco",
-        "Gatilho_Alto",
-        "Fugulin_total",
-        "Fugulin_classificacao",
-        "Charlson_total",
-        "MRC",
-        "ASG",
-        "FOIS",
-        "Polifarmacia",
-    ]
-    df_export = df.reindex(columns=cols, fill_value="").sort_values("Leito", na_position="last")
-    table_data = [cols] + df_export.astype(str).values.tolist()
+    cols = list(df_simple.columns)
+    table_data = [cols] + df_simple.astype(str).values.tolist()
 
     t = Table(table_data, repeatRows=1)
     t.setStyle(
@@ -327,32 +308,28 @@ def build_pdf(df: pd.DataFrame, summary: dict) -> bytes:
     doc.build(elements)
     return buffer.getvalue()
 
-
 # ============================================================
-# SESSION STATE
+# SESSION STATE (sem persistência real)
 # ============================================================
 if "patients" not in st.session_state:
     st.session_state.patients = []
-
+if "last_added" not in st.session_state:
+    st.session_state.last_added = None  # backup rápido (último paciente)
 
 # ============================================================
 # ABA PRINCIPAL
 # ============================================================
 with tab_calc:
     st.title("🩺 IRAH–Premier — Avaliação Assistencial")
-    st.markdown(
-        "Preencha as escalas para calcular o **IRAH–Premier** por paciente e acompanhar a "
-        "**complexidade assistencial da unidade (20 leitos)**."
-    )
+    st.caption("Dica operacional: após inserir alguns pacientes, baixe o CSV/PDF para garantir backup local.")
 
-    # Identificação mínima
     iniciais = st.text_input("Iniciais do paciente (ex.: JAS)", key="iniciais_input").strip().upper()
     leito = st.number_input("Leito (1 a 20)", min_value=1, max_value=20, step=1, key="leito_input")
 
     st.markdown("---")
 
     # FUGULIN
-    st.subheader("🧾 Escala de Fugulin (preenchimento completo)")
+    st.subheader("🧾 Escala de Fugulin (12 itens — com texto)")
     fugulin_scores = {}
     cols = st.columns(3)
     for i, (domain, options) in enumerate(FUGULIN_SCALE.items()):
@@ -367,8 +344,8 @@ with tab_calc:
 
     st.markdown(
         """<small>
-        Classificação Fugulin (operacional): Mínimo (12–17) • Intermediário (18–22) • Alta dependência (23–28) • Semi-intensivo (28–34) • Intensivo (&gt;34)
-        <br><b>Obs.:</b> Para evitar ambiguidade, o app aplica <b>28–34 como Semi-intensivo</b> e <b>23–27 como Alta dependência</b>.
+        Classificação Fugulin: Mínimo (12–17) • Intermediário (18–22) • Alta dependência (23–28) • Semi-intensivo (28–34) • Intensivo (&gt;34).
+        <br><b>Regra do app:</b> 28–34 = Semi-intensivo; 23–27 = Alta dependência.
         </small>""",
         unsafe_allow_html=True,
     )
@@ -376,7 +353,7 @@ with tab_calc:
     st.markdown("---")
 
     # CHARLSON
-    st.subheader("🧬 Índice de Charlson (preenchimento completo)")
+    st.subheader("🧬 Índice de Charlson (checklist)")
     c1, c2 = st.columns([1, 1])
     with c1:
         age = st.number_input("Idade (opcional)", min_value=0, max_value=120, step=1, key="age_input")
@@ -393,13 +370,12 @@ with tab_calc:
     charlson_base = int(sum(CHARLSON_ITEMS[name] for name, checked in charlson_checks.items() if checked))
     charlson_age = int(charlson_age_points(int(age))) if use_age_adjust else 0
     charlson_total = int(charlson_base + charlson_age)
-
     st.info(f"**Charlson (base):** {charlson_base}  |  **Idade:** {charlson_age}  |  **Charlson total:** {charlson_total}")
 
     st.markdown("---")
 
-    # DEMAIS ESCALAS
-    st.subheader("⚙️ Demais escalas (entrada direta)")
+    # OUTRAS ESCALAS
+    st.subheader("⚙️ Outras escalas")
     mrc = st.number_input("MRC (0 a 60)", min_value=0, max_value=60, step=1, key="mrc_input")
     asg = st.selectbox("ASG", ["A", "B", "C"], index=0, key="asg_input")
     fois_label = st.selectbox("FOIS", list(FOIS_LABEL_MAP.keys()), index=6, key="fois_input")
@@ -414,9 +390,8 @@ with tab_calc:
     mrc_norm = normalize_mrc(mrc)
     asg_norm = normalize_asg(asg)
     fois_norm = normalize_fois(fois)
-    poly_norm = normalize_polypharmacy(poly)
+    poly_norm = normalize_poly(poly)
 
-    # Gatilhos sentinela (Premier)
     trigger_high = (fois <= 3) or (poly >= 13) or (mrc <= 35)
 
     irah = (
@@ -425,7 +400,7 @@ with tab_calc:
         + mrc_norm * WEIGHTS["MRC"]
         + asg_norm * WEIGHTS["ASG"]
         + fois_norm * WEIGHTS["FOIS"]
-        + poly_norm * WEIGHTS["Polifarmácia"]
+        + poly_norm * WEIGHTS["Polifarmacia"]
     )
     irah = round(float(irah), 1)
     risco = classify(irah, trigger_high)
@@ -452,7 +427,7 @@ with tab_calc:
                 ["MRC", mrc, round(mrc_norm, 1), WEIGHTS["MRC"], round(mrc_norm * WEIGHTS["MRC"], 1)],
                 ["ASG", asg, round(asg_norm, 1), WEIGHTS["ASG"], round(asg_norm * WEIGHTS["ASG"], 1)],
                 ["FOIS", fois, round(fois_norm, 1), WEIGHTS["FOIS"], round(fois_norm * WEIGHTS["FOIS"], 1)],
-                ["Polifarmácia", poly, round(poly_norm, 1), WEIGHTS["Polifarmácia"], round(poly_norm * WEIGHTS["Polifarmácia"], 1)],
+                ["Polifarmácia", poly, round(poly_norm, 1), WEIGHTS["Polifarmacia"], round(poly_norm * WEIGHTS["Polifarmacia"], 1)],
             ],
             columns=["Escala", "Entrada", "Normalizado (0–100)", "Peso", "Contribuição"],
         )
@@ -462,7 +437,7 @@ with tab_calc:
     # AÇÕES — CLÍNICA (20 leitos)
     # ============================================================
     st.markdown("---")
-    st.subheader("Clínica (20 leitos) — Lista e Complexidade Assistencial")
+    st.subheader("Clínica (20 leitos) — Lista e Exportação")
 
     a1, a2, a3 = st.columns(3)
     with a1:
@@ -472,32 +447,37 @@ with tab_calc:
     with a3:
         clear = st.button("♻️ Limpar lista", use_container_width=True)
 
+    # Registro do paciente (somente tipos simples + JSON em string)
+    fugulin_json = safe_json_dumps(fugulin_scores)
+    charlson_list = [k for k, v in charlson_checks.items() if v]
+    charlson_json = safe_json_dumps(charlson_list)
+
+    patient_record = {
+        "Leito": int(leito),
+        "Iniciais": iniciais,
+        "IRAH_Premier": float(irah),
+        "Risco": risco,
+        "Gatilho_Alto": "SIM" if trigger_high else "",
+        "Fugulin_total": int(fugulin_total),
+        "Fugulin_classificacao": fugulin_cat,
+        "Charlson_total": int(charlson_total),
+        "Charlson_base": int(charlson_base),
+        "Charlson_idade_pts": int(charlson_age),
+        "MRC": int(mrc),
+        "ASG": asg,
+        "FOIS": int(fois),
+        "Polifarmacia": int(poly),
+        "Fugulin_detalhes_json": fugulin_json,
+        "Charlson_detalhes_json": charlson_json,
+    }
+
     if add:
         if not iniciais:
             st.error("Informe as **iniciais do paciente** antes de adicionar.")
         else:
-            # atualiza por leito
             st.session_state.patients = [p for p in st.session_state.patients if int(p.get("Leito", -1)) != int(leito)]
-            st.session_state.patients.append(
-                {
-                    "Leito": int(leito),
-                    "Iniciais": iniciais,
-                    "IRAH_Premier": irah,
-                    "Risco": risco,
-                    "Gatilho_Alto": "SIM" if trigger_high else "",
-                    "Fugulin_total": int(fugulin_total),
-                    "Fugulin_classificacao": fugulin_cat,
-                    "Fugulin_detalhes": fugulin_scores,
-                    "Charlson_total": int(charlson_total),
-                    "Charlson_base": int(charlson_base),
-                    "Charlson_idade_pts": int(charlson_age),
-                    "Charlson_detalhes": [k for k, v in charlson_checks.items() if v],
-                    "MRC": int(mrc),
-                    "ASG": asg,
-                    "FOIS": int(fois),
-                    "Polifarmacia": int(poly),
-                }
-            )
+            st.session_state.patients.append(patient_record)
+            st.session_state.last_added = patient_record
             st.success(f"Leito {int(leito)} atualizado para {iniciais}.")
 
     if remove:
@@ -511,15 +491,29 @@ with tab_calc:
 
     if clear:
         st.session_state.patients = []
+        st.session_state.last_added = None
         st.success("Lista da clínica limpa.")
 
     # ============================================================
-    # TABELA + MÉTRICAS + EXPORTAÇÃO
+    # BACKUP RÁPIDO
+    # ============================================================
+    if st.session_state.last_added:
+        st.markdown("### ✅ Backup rápido do último paciente")
+        last_df = pd.DataFrame([st.session_state.last_added])
+        st.download_button(
+            "⬇️ Baixar CSV (último paciente)",
+            data=last_df.to_csv(index=False).encode("utf-8"),
+            file_name=f"irah_premier_leito_{int(st.session_state.last_added['Leito'])}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    # ============================================================
+    # TABELA + MÉTRICAS + EXPORTAÇÃO (SEGURO)
     # ============================================================
     if st.session_state.patients:
         df = pd.DataFrame(st.session_state.patients)
 
-        # Proteção de schema (para dados antigos)
         display_cols = [
             "Leito",
             "Iniciais",
@@ -534,27 +528,29 @@ with tab_calc:
             "FOIS",
             "Polifarmacia",
         ]
-        metric_cols = display_cols + ["Fugulin_detalhes", "Charlson_detalhes"]
 
-        df = df.reindex(columns=metric_cols, fill_value="")
+        df = df.reindex(columns=display_cols + ["Fugulin_detalhes_json", "Charlson_detalhes_json"], fill_value="")
         df["Leito"] = pd.to_numeric(df["Leito"], errors="coerce")
         df["IRAH_Premier"] = pd.to_numeric(df["IRAH_Premier"], errors="coerce")
         df = df.sort_values("Leito", na_position="last")
 
         st.dataframe(df[display_cols], use_container_width=True)
 
-        # métricas
         total = int(df["Leito"].notna().sum())
         baixo = int((df["Risco"] == "Baixo").sum())
         moderado = int((df["Risco"] == "Moderado").sum())
         alto = int((df["Risco"] == "Alto").sum())
 
-        media = round(float(df["IRAH_Premier"].dropna().mean()), 1) if df["IRAH_Premier"].notna().any() else 0.0
-        mediana = round(float(df["IRAH_Premier"].dropna().median()), 1) if df["IRAH_Premier"].notna().any() else 0.0
-        carga_total = round(float(df["IRAH_Premier"].dropna().sum()), 1) if df["IRAH_Premier"].notna().any() else 0.0
+        if df["IRAH_Premier"].notna().any():
+            media = round(float(df["IRAH_Premier"].dropna().mean()), 1)
+            mediana = round(float(df["IRAH_Premier"].dropna().median()), 1)
+            carga_total = round(float(df["IRAH_Premier"].dropna().sum()), 1)
+        else:
+            media, mediana, carga_total = 0.0, 0.0, 0.0
 
         ocupacao = f"{total}/20"
         complexidade_global = "Baixa" if media < 34 else "Moderada" if media < 67 else "Alta"
+        distribuicao = f"🟢 Baixo: {baixo} | 🟡 Moderado: {moderado} | 🔴 Alto: {alto}"
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Ocupação", ocupacao)
@@ -562,18 +558,13 @@ with tab_calc:
         c3.metric("Mediana IRAH", f"{mediana}")
         c4.metric("Carga total (soma)", f"{carga_total}")
 
-        distribuicao = f"🟢 Baixo: {baixo} | 🟡 Moderado: {moderado} | 🔴 Alto: {alto}"
         st.markdown(f"**Distribuição de risco:** {distribuicao}")
-        st.info(f"**Complexidade assistencial global da clínica (pela média do IRAH): {complexidade_global}**")
+        st.info(f"**Complexidade assistencial global (pela média do IRAH): {complexidade_global}**")
 
         # CSV completo
-        df_csv = df.copy()
-        for col in ["Fugulin_detalhes", "Charlson_detalhes"]:
-            df_csv[col] = df_csv[col].apply(lambda x: str(x))
-
         st.download_button(
             "⬇️ Baixar CSV completo (clínica)",
-            data=df_csv.to_csv(index=False).encode("utf-8"),
+            data=df.to_csv(index=False).encode("utf-8"),
             file_name="irah_premier_clinica.csv",
             mime="text/csv",
             use_container_width=True,
@@ -597,15 +588,16 @@ with tab_calc:
             use_container_width=True,
         )
 
-        with st.expander("🔎 Ver escalas detalhadas por paciente"):
+        with st.expander("🔎 Ver escalas detalhadas por paciente (seguro)"):
             for _, row in df.sort_values("Leito", na_position="last").iterrows():
                 if pd.isna(row.get("Leito")):
                     continue
                 st.markdown(f"**Leito {int(row['Leito'])} — {row.get('Iniciais','')}**")
+
                 colx, coly = st.columns(2)
                 with colx:
                     st.markdown("**Fugulin (detalhes)**")
-                    fug_det = row.get("Fugulin_detalhes", {})
+                    fug_det = safe_json_loads(row.get("Fugulin_detalhes_json", ""))
                     if isinstance(fug_det, dict) and fug_det:
                         for k, v in fug_det.items():
                             desc = FUGULIN_SCALE.get(k, {}).get(int(v), "")
@@ -614,7 +606,7 @@ with tab_calc:
                         st.write("- (sem detalhes)")
                 with coly:
                     st.markdown("**Charlson (detalhes)**")
-                    ch_list = row.get("Charlson_detalhes", [])
+                    ch_list = safe_json_loads(row.get("Charlson_detalhes_json", ""))
                     if isinstance(ch_list, list) and ch_list:
                         for item in ch_list:
                             st.write(f"- {item}")
@@ -629,13 +621,11 @@ with tab_calc:
         unsafe_allow_html=True,
     )
 
-
 # ============================================================
 # ABA SOBRE
 # ============================================================
 with tab_about:
     st.markdown("## 📘 IRAH–Premier — Documento Institucional")
-    # Opção 2: mostrar README.md dentro do app (se existir no repositório)
     try:
         with open("README.md", "r", encoding="utf-8") as f:
             st.markdown(f.read())

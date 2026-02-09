@@ -1,179 +1,208 @@
 🏥 IRAH–Premier
 
 Índice de Risco Assistencial Hospitalar para Instituições de Transição de Cuidados
+(Alinhado aos padrões ONA e Qmentum)
 
-📌 Visão Geral
+1. Visão Geral
 
-O IRAH–Premier (Índice de Risco Assistencial Hospitalar – Premier) é um instrumento clínico-assistencial desenvolvido para instituições de transição de cuidados, com foco em pacientes em reabilitação, pós-eventos clínicos agudos e cuidados paliativos não exclusivos.
+O IRAH–Premier (Índice de Risco Assistencial Hospitalar – Premier) é um instrumento estruturado de estratificação de risco assistencial, desenvolvido para instituições de transição de cuidados, com foco em pacientes em reabilitação, pós-eventos clínicos agudos e cuidados paliativos não exclusivos.
 
-O índice tem como objetivo estratificar o risco assistencial de forma padronizada, apoiar decisões multiprofissionais e traduzir a complexidade assistencial individual e global da unidade, com impacto direto na segurança do paciente e na gestão do cuidado.
+O índice foi concebido para apoiar a segurança do paciente, a qualidade assistencial e a gestão do cuidado, estando alinhado aos princípios e requisitos dos programas de acreditação ONA e Qmentum International.
 
-🎯 Objetivos do IRAH–Premier
+2. Objetivos Institucionais
 
-Identificar pacientes com maior complexidade e risco assistencial
+O IRAH–Premier tem como objetivos:
 
-Apoiar a priorização multiprofissional
+Identificar pacientes com maior risco assistencial
 
-Antecipar eventos adversos evitáveis
+Apoiar a priorização do cuidado multiprofissional
 
-Subsidiar planos terapêuticos individualizados
+Antecipar e mitigar eventos adversos evitáveis
 
-Monitorar a complexidade assistencial da clínica no dia
+Padronizar a linguagem de risco assistencial
 
-Padronizar a linguagem de risco entre equipes assistenciais e gestão
+Monitorar o perfil assistencial diário da unidade
 
-🧠 Fundamentação Conceitual
+Subsidiar decisões clínicas, administrativas e regulatórias
+
+👉 Esses objetivos atendem diretamente aos eixos de Segurança do Paciente, Continuidade do Cuidado e Gestão por Processos exigidos pela ONA e pelo Qmentum.
+
+3. Fundamentação Conceitual (Acreditação)
 
 Instituições de transição de cuidados concentram pacientes com:
 
-Alta carga de comorbidades crônicas
+Alta carga de comorbidades
 
-Comprometimento funcional variável
+Comprometimento funcional
 
 Risco nutricional e de disfagia
 
-Uso frequente de múltiplos medicamentos
+Polifarmácia
 
 Dependência contínua de cuidado multiprofissional
 
-O IRAH–Premier foi desenhado para refletir essa complexidade assistencial real, indo além de índices voltados exclusivamente à mortalidade ou ao ambiente hospitalar agudo.
+O IRAH–Premier integra essas dimensões em um modelo único de estratificação, promovendo:
 
-🧩 Componentes do Índice
+Avaliação sistematizada do risco
 
-O IRAH–Premier é um índice composto, com escore final variando de 0 a 100
-(quanto maior o valor, maior o risco assistencial).
+Tomada de decisão baseada em dados
 
+Redução da variabilidade assistencial
+
+📌 Alinhamento com ONA e Qmentum
+
+ONA: Gestão de Riscos, Segurança Assistencial, Continuidade do Cuidado
+
+Qmentum: Risk Assessment, Interdisciplinary Care, Quality Improvement
+
+4. Estrutura do Índice
+
+O IRAH–Premier é um índice composto, com escore final variando de 0 a 100, onde:
+
+0 → menor risco assistencial
+
+100 → maior risco assistencial
+
+Cada componente é:
+
+Inserido no formato original validado
+
+Normalizado para escala comum
+
+Ponderado conforme relevância clínica
+
+5. Componentes e Pesos
 Dimensão	Escala	Peso
 Comorbidades	Índice de Charlson	20%
 Demanda de cuidado	Escala de Fugulin	20%
-Funcionalidade motora	MRC (Medical Research Council)	15%
-Estado nutricional	Avaliação Subjetiva Global (ASG)	15%
-Deglutição / ingestão oral	FOIS	15%
+Funcionalidade motora	MRC	15%
+Estado nutricional	ASG	15%
+Deglutição	FOIS	15%
 Segurança medicamentosa	Polifarmácia	15%
 Total		100%
 
-Todas as escalas são inseridas no formato original e normalizadas internamente pelo aplicativo.
+📌 ONA / Qmentum
 
-🔢 Normalização e Cálculo
+Avaliação multidimensional do paciente
 
-Cada escala é convertida para uma escala comum (0–100)
+Integração entre áreas assistenciais
 
-Os pesos são aplicados conforme relevância clínica
+Uso de instrumentos validados
 
-O resultado final representa o IRAH–Premier do paciente
+6. Classificação de Risco Assistencial
 
-O app também calcula:
+Para facilitar a aplicação prática e a comunicação institucional, o IRAH–Premier adota três faixas operacionais:
 
-Média do IRAH da clínica
+Escore	Classificação
+0–33	🟢 Baixo risco
+34–66	🟡 Risco moderado
+67–100	🔴 Alto risco
 
-Mediana
+👉 Essa classificação é utilizada para gestão, rounds multiprofissionais e monitoramento institucional, não substituindo a avaliação clínica individual.
 
-Carga assistencial total (soma)
+7. Identificação Automática de Riscos Assistenciais
 
-Distribuição por faixa de risco
+Além do escore global, o aplicativo identifica riscos clínicos relevantes, fortalecendo a segurança do paciente:
 
-🚦 Classificação de Risco Assistencial
+Risco de queda
 
-O resultado final é apresentado em três faixas simples, facilitando uso prático:
+Risco de lesão por pressão
 
-Escore IRAH–Premier	Classificação
-0 – 33	🟢 Baixo risco
-34 – 66	🟡 Risco moderado
-67 – 100	🔴 Alto risco
+Risco de broncoaspiração
 
-Essa classificação é utilizada para gestão, rounds e monitoramento da unidade, não substituindo a avaliação clínica individual.
+Risco nutricional
 
-⚠️ Identificação Automática de Riscos Assistenciais
+Risco medicamentoso
 
-Além do escore global, o aplicativo identifica automaticamente riscos clínicos relevantes, com base nas escalas preenchidas.
+Esses riscos:
 
-Os riscos atualmente mapeados incluem:
+São derivados das escalas já preenchidas
 
-🟠 Risco de queda
-Associado a:
+Não alteram o escore do índice
 
-Fugulin elevado
+Orientam planos terapêuticos, medidas preventivas e registros assistenciais
 
-MRC reduzido
+📌 Alinhamento com ONA / Qmentum
 
-Alta dependência funcional
+Gestão de riscos clínicos
 
-🟠 Risco de lesão por pressão (LPP)
-Associado a:
+Prevenção de eventos adversos
 
-Fugulin elevado
+Planos de cuidado individualizados
 
-Alterações de mobilidade
+8. Uso Assistencial e Gerencial
 
-Integridade cutâneo-mucosa comprometida
+O IRAH–Premier pode ser utilizado para:
 
-🟠 Risco de broncoaspiração
-Associado a:
-
-FOIS ≤ 3
-
-Dependência para alimentação
-
-🟠 Risco nutricional
-Associado a:
-
-ASG B ou C
-
-Polifarmácia
-
-Redução de ingestão oral
-
-🟠 Risco medicamentoso
-Associado a:
-
-Polifarmácia progressiva
-
-Maior risco de delirium, quedas e interações medicamentosas
-
-👉 Esses riscos não alteram o cálculo do índice, mas orientam o plano terapêutico, intervenções específicas e a documentação assistencial (ex.: relatórios de prorrogação).
-
-🏥 Uso Assistencial do IRAH–Premier
-
-O índice pode ser utilizado para:
+Assistencial
 
 Planejamento de rounds multiprofissionais
 
-Definição da intensidade de reabilitação
+Definição de intensidade de reabilitação
 
-Estratificação de risco para segurança do paciente
+Antecipação de riscos assistenciais
 
 Monitoramento da evolução clínica e funcional
 
-Apoio à elaboração de relatórios administrativos e assistenciais
+Gerencial / Qualidade
 
-Avaliação diária do perfil assistencial da clínica
-🛠️ Aplicativo (Streamlit)
+Análise diária do perfil assistencial da unidade
 
-O app:
+Dimensionamento e alocação de recursos
 
-Permite entrada estruturada das escalas completas (Fugulin, Charlson, MRC, ASG, FOIS, Polifarmácia)
+Monitoramento de carga assistencial
 
-Calcula automaticamente o IRAH–Premier
+Apoio a auditorias, acreditação e relatórios institucionais
 
-Exibe riscos assistenciais identificados
+📌 ONA / Qmentum
 
-Consolida o perfil da clínica (até 20 leitos)
+Monitoramento de desempenho
+
+Uso de indicadores assistenciais
+
+Cultura de segurança
+
+9. Aplicativo (Streamlit)
+
+O aplicativo IRAH–Premier:
+
+Utiliza escalas completas e validadas
+
+Calcula automaticamente o índice
+
+Consolida o perfil da unidade (até 20 leitos)
+
+Identifica riscos assistenciais
 
 Permite exportação em:
 
 📄 CSV
 
-📑 PDF (relatório assistencial da unidade)
+📑 PDF (relatório assistencial da clínica)
 
-⚠️ Os dados não são persistidos em banco de dados — a exportação é parte fundamental do fluxo de uso.
+⚠️ Os dados não são persistidos em banco, reforçando a necessidade de exportação como registro institucional.
 
-⚠️ Aviso Importante
+10. Governança, Qualidade e Acreditação
+
+O IRAH–Premier contribui diretamente para:
+
+Padronização da avaliação assistencial
+
+Redução da variabilidade clínica
+
+Evidência objetiva de gestão de risco
+
+Fortalecimento da cultura de segurança
+
+Atendimento aos requisitos de ONA Nível 2 e 3 e Qmentum
+
+11. Aviso Institucional
 
 O IRAH–Premier é uma ferramenta de apoio à decisão clínica e à gestão assistencial.
-Ele não substitui o julgamento clínico profissional, protocolos institucionais ou diretrizes assistenciais.
+Não substitui julgamento clínico profissional, protocolos institucionais ou diretrizes assistenciais.
 
-👨‍⚕️ Autoria e Desenvolvimento
+12. Autoria
 
-Projeto desenvolvido por
+Projeto desenvolvido por:
 Vitor Dominato Rocha — Médico e gestor em saúde
 Wlademinck Reis — Enfermeiro e gestor em saúde

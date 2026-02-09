@@ -147,3 +147,33 @@ Monitoramento da evolução clínica e funcional
 Apoio à elaboração de relatórios administrativos e assistenciais
 
 Avaliação diária do perfil assistencial da clínica
+🛠️ Aplicativo (Streamlit)
+
+O app:
+
+Permite entrada estruturada das escalas completas (Fugulin, Charlson, MRC, ASG, FOIS, Polifarmácia)
+
+Calcula automaticamente o IRAH–Premier
+
+Exibe riscos assistenciais identificados
+
+Consolida o perfil da clínica (até 20 leitos)
+
+Permite exportação em:
+
+📄 CSV
+
+📑 PDF (relatório assistencial da unidade)
+
+⚠️ Os dados não são persistidos em banco de dados — a exportação é parte fundamental do fluxo de uso.
+
+⚠️ Aviso Importante
+
+O IRAH–Premier é uma ferramenta de apoio à decisão clínica e à gestão assistencial.
+Ele não substitui o julgamento clínico profissional, protocolos institucionais ou diretrizes assistenciais.
+
+👨‍⚕️ Autoria e Desenvolvimento
+
+Projeto desenvolvido por
+Vitor Dominato Rocha — Médico e gestor em saúde
+Wlademinck Reis — Enfermeiro e gestor em saúde

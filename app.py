@@ -212,6 +212,84 @@ def normalize_poly(n_meds: int) -> float:
     return 100.0
 
 
+# ============================================================
+# RISCOS IDENTIFICADOS (DERIVADOS DAS ESCALAS)
+# ============================================================
+def _bump_level(level: str, n: int = 1) -> str:
+    order = ["Baixo", "Moderado", "Alto"]
+    if level not in order:
+        level = "Baixo"
+    i = order.index(level)
+    return order[min(len(order) - 1, i + n)]
+
+def risk_broncoaspiracao(fois: int) -> str:
+    # FOIS baixo = maior risco de aspiração
+    if int(fois) <= 3:
+        return "Alto"
+    if int(fois) <= 5:
+        return "Moderado"
+    return "Baixo"
+
+def risk_queda(mrc: int, fugulin_deambulacao: int | None = None) -> str:
+    # Regra simples e operacional: fraqueza funcional aumenta risco de queda
+    if int(mrc) <= 35:
+        lvl = "Alto"
+    elif int(mrc) <= 47:
+        lvl = "Moderado"
+    else:
+        lvl = "Baixo"
+
+    # Ajuste opcional pelo item Deambulação do Fugulin (3-4 sugere maior risco)
+    if fugulin_deambulacao is not None and int(fugulin_deambulacao) >= 3 and lvl != "Alto":
+        lvl = _bump_level(lvl, 1)
+    return lvl
+
+def risk_lpp(fug_scores: dict) -> str:
+    # Usa itens do Fugulin como proxy assistencial para risco de LPP
+    integ = int(fug_scores.get("Integridade cutâneo-mucosa", 1) or 1)
+    motil = int(fug_scores.get("Motilidade", 1) or 1)
+    corpo = int(fug_scores.get("Cuidado corporal", 1) or 1)
+    deamb = int(fug_scores.get("Deambulação", 1) or 1)
+
+    if integ >= 3:
+        lvl = "Alto"
+    elif motil >= 3 or corpo >= 3:
+        lvl = "Moderado"
+    else:
+        lvl = "Baixo"
+
+    # Restrito ao leito agrava
+    if deamb == 4 and lvl != "Alto":
+        lvl = _bump_level(lvl, 1)
+    return lvl
+
+def risk_nutricional(asg: str, fois: int) -> str:
+    # ASG é a referência da admissão e mantém consistência assistencial
+    asg = (asg or "").strip().upper()
+    if asg == "C":
+        lvl = "Alto"
+    elif asg == "B":
+        lvl = "Moderado"
+    else:
+        lvl = "Baixo"
+
+    # Deglutição/via oral piora risco nutricional
+    if int(fois) <= 4 and lvl != "Alto":
+        lvl = _bump_level(lvl, 1)
+    return lvl
+
+def risk_medicamentoso(poly: int) -> str:
+    n = int(poly or 0)
+    if n >= 13:
+        return "Alto"
+    if n >= 10:
+        return "Moderado"
+    if n >= 7:
+        return "Moderado"
+    return "Baixo"
+
+
+
 def classify(score_0_100: float, trigger_high: bool) -> str:
     if trigger_high:
         return "Alto"
@@ -394,6 +472,20 @@ with tab_calc:
 
     trigger_high = (fois <= 3) or (poly >= 13) or (mrc <= 35)
 
+    # ============================================================
+    # RISCOS IDENTIFICADOS (CHECKLIST DE SEGURANÇA)
+    # ============================================================
+    fug_deamb = int(fugulin_scores.get("Deambulação", 1) or 1)
+    riscos = {
+        "Queda": risk_queda(mrc, fug_deamb),
+        "Lesão por pressão": risk_lpp(fugulin_scores),
+        "Broncoaspiração": risk_broncoaspiracao(fois),
+        "Nutricional": risk_nutricional(asg, fois),
+        "Medicamentoso": risk_medicamentoso(poly),
+    }
+    riscos_str = " | ".join([f"{k}: {v}" for k, v in riscos.items()])
+
+
     irah = (
         charlson_norm * WEIGHTS["Charlson"]
         + fugulin_norm * WEIGHTS["Fugulin"]
@@ -418,6 +510,17 @@ with tab_calc:
 
     if trigger_high:
         st.info("⚠️ Gatilho de alto risco ativado (FOIS ≤ 3, Polifarmácia ≥ 13 ou MRC ≤ 35).")
+
+
+    st.markdown("### 🧷 Riscos identificados (segurança clínica)")
+    for k, v in riscos.items():
+        if v == "Alto":
+            st.error(f"🔴 {k}: {v}")
+        elif v == "Moderado":
+            st.warning(f"🟡 {k}: {v}")
+        else:
+            st.success(f"🟢 {k}: {v}")
+
 
     with st.expander("Ver detalhes do cálculo (normalização e contribuição)"):
         df_detail = pd.DataFrame(
@@ -469,6 +572,12 @@ with tab_calc:
         "Polifarmacia": int(poly),
         "Fugulin_detalhes_json": fugulin_json,
         "Charlson_detalhes_json": charlson_json,
+        "Riscos_identificados": riscos_str,
+        "Risco_queda": riscos["Queda"],
+        "Risco_LPP": riscos["Lesão por pressão"],
+        "Risco_broncoaspiracao": riscos["Broncoaspiração"],
+        "Risco_nutricional": riscos["Nutricional"],
+        "Risco_medicamentoso": riscos["Medicamentoso"],
     }
 
     if add:
@@ -519,6 +628,7 @@ with tab_calc:
             "Iniciais",
             "IRAH_Premier",
             "Risco",
+            "Riscos_identificados",
             "Gatilho_Alto",
             "Fugulin_total",
             "Fugulin_classificacao",

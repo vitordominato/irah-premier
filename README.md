@@ -1,111 +1,149 @@
-[README_IRAH_Premier.md](https://github.com/user-attachments/files/24457871/README_IRAH_Premier.md)
-# 🏥 IRAH–Premier  
-**Índice de Risco Assistencial Hospitalar para Instituições de Transição de Cuidados**
+🏥 IRAH–Premier
 
-## 📌 Visão Geral
-O **IRAH–Premier** (Índice de Risco Assistencial Hospitalar – Premier) é um instrumento clínico-assistencial desenvolvido para **instituições de transição de cuidados**, com foco em pacientes em reabilitação, pós-eventos clínicos agudos e cuidados paliativos não exclusivos.
+Índice de Risco Assistencial Hospitalar para Instituições de Transição de Cuidados
 
-O índice tem como objetivo **estratificar o risco assistencial de forma padronizada**, apoiar decisões multiprofissionais e **monitorar a complexidade assistencial global da unidade**.
+📌 Visão Geral
 
----
+O IRAH–Premier (Índice de Risco Assistencial Hospitalar – Premier) é um instrumento clínico-assistencial desenvolvido para instituições de transição de cuidados, com foco em pacientes em reabilitação, pós-eventos clínicos agudos e cuidados paliativos não exclusivos.
 
-## 🎯 Objetivos do IRAH–Premier
-- Identificar pacientes com **maior risco assistencial**
-- Priorizar intervenções multiprofissionais
-- Antecipar eventos adversos evitáveis (quedas, aspiração, delirium, reinternação)
-- Monitorar a **complexidade assistencial da clínica como um todo**
-- Padronizar a linguagem de risco entre equipes
+O índice tem como objetivo estratificar o risco assistencial de forma padronizada, apoiar decisões multiprofissionais e traduzir a complexidade assistencial individual e global da unidade, com impacto direto na segurança do paciente e na gestão do cuidado.
 
----
+🎯 Objetivos do IRAH–Premier
 
-## 🧠 Fundamentação Conceitual
+Identificar pacientes com maior complexidade e risco assistencial
+
+Apoiar a priorização multiprofissional
+
+Antecipar eventos adversos evitáveis
+
+Subsidiar planos terapêuticos individualizados
+
+Monitorar a complexidade assistencial da clínica no dia
+
+Padronizar a linguagem de risco entre equipes assistenciais e gestão
+
+🧠 Fundamentação Conceitual
+
 Instituições de transição de cuidados concentram pacientes com:
-- Alta carga de comorbidades
-- Comprometimento funcional
-- Risco nutricional e de disfagia
-- Uso frequente de múltiplos medicamentos
-- Necessidade contínua de cuidado multiprofissional
 
-O **IRAH–Premier** foi desenhado para refletir essa **complexidade assistencial real**, indo além de modelos voltados exclusivamente ao hospital agudo.
+Alta carga de comorbidades crônicas
 
----
+Comprometimento funcional variável
 
-## 🧩 Componentes do Índice
-O IRAH–Premier é um índice composto, com escore final variando de **0 a 100**  
-(**quanto maior o valor, maior o risco assistencial**).
+Risco nutricional e de disfagia
 
-| Dimensão | Escala | Peso |
-|--------|------|------|
-| Comorbidades | Índice de Charlson | 20% |
-| Demanda de cuidado | Escala de Fugulin | 20% |
-| Funcionalidade motora | MRC (Medical Research Council) | 15% |
-| Estado nutricional | Avaliação Subjetiva Global (ASG) | 15% |
-| Deglutição / ingestão oral | FOIS (Functional Oral Intake Scale) | 15% |
-| Segurança medicamentosa | Polifarmácia | 15% |
-| **Total** |  | **100%** |
+Uso frequente de múltiplos medicamentos
 
----
+Dependência contínua de cuidado multiprofissional
 
-## 🔢 Normalização das Escalas
-Todas as escalas são **normalizadas para uma escala comum (0–100)** antes da aplicação dos pesos, garantindo:
+O IRAH–Premier foi desenhado para refletir essa complexidade assistencial real, indo além de índices voltados exclusivamente à mortalidade ou ao ambiente hospitalar agudo.
 
-- Transparência metodológica  
-- Comparabilidade entre domínios  
-- Facilidade de interpretação clínica  
+🧩 Componentes do Índice
 
----
+O IRAH–Premier é um índice composto, com escore final variando de 0 a 100
+(quanto maior o valor, maior o risco assistencial).
 
-## 🚦 Classificação de Risco
-O resultado final é classificado em **três faixas simples**, para facilitar a aplicação assistencial:
+Dimensão	Escala	Peso
+Comorbidades	Índice de Charlson	20%
+Demanda de cuidado	Escala de Fugulin	20%
+Funcionalidade motora	MRC (Medical Research Council)	15%
+Estado nutricional	Avaliação Subjetiva Global (ASG)	15%
+Deglutição / ingestão oral	FOIS	15%
+Segurança medicamentosa	Polifarmácia	15%
+Total		100%
 
-| Escore IRAH–Premier | Classificação |
-|-------------------|---------------|
-| 0 – 33 | 🟢 Baixo risco |
-| 34 – 66 | 🟡 Risco moderado |
-| 67 – 100 | 🔴 Alto risco |
+Todas as escalas são inseridas no formato original e normalizadas internamente pelo aplicativo.
 
-### ⚠️ Gatilhos de Alto Risco
-Independentemente do escore final, o paciente é classificado como **Alto Risco** se apresentar **qualquer um** dos critérios abaixo:
-- FOIS ≤ 3  
-- Polifarmácia ≥ 13 medicamentos  
-- MRC ≤ 35  
+🔢 Normalização e Cálculo
 
----
+Cada escala é convertida para uma escala comum (0–100)
 
-## 🏥 Uso Assistencial
-O IRAH–Premier pode ser utilizado para:
-- Planejamento e priorização de rounds multiprofissionais
-- Definição da intensidade de reabilitação
-- Monitoramento longitudinal da evolução clínica
-- Avaliação da **complexidade assistencial global da unidade**
-- Apoio à gestão e alocação de recursos
+Os pesos são aplicados conforme relevância clínica
 
----
+O resultado final representa o IRAH–Premier do paciente
 
-## 🛠️ Aplicativo (Streamlit)
-Este repositório contém um **aplicativo web desenvolvido em Streamlit**, no qual:
-- A entrada é feita a partir dos **escores originais das escalas**
-- O sistema realiza automaticamente:
-  - Normalização
-  - Aplicação de pesos
-  - Cálculo do IRAH–Premier
-  - Classificação de risco
-- Os dados são mantidos apenas durante a sessão (sem persistência de dados sensíveis)
+O app também calcula:
 
----
+Média do IRAH da clínica
 
-## ⚠️ Aviso Importante
-> O IRAH–Premier é uma **ferramenta de apoio à decisão clínica**.  
-> Ele **não substitui o julgamento clínico profissional** nem protocolos institucionais específicos.
+Mediana
 
----
+Carga assistencial total (soma)
 
-## 👨‍⚕️ Autoria e Desenvolvimento
-Projeto desenvolvido por **Vitor Dominato Rocha**, médico e gestor em saúde,  
-e **Wlademinck Reis**, enfermeiro e gestor em saúde.
+Distribuição por faixa de risco
 
----
+🚦 Classificação de Risco Assistencial
 
-## 📄 Licença
-Projeto de uso institucional e educacional.  
-Licença a ser definida conforme a política da instituição.
+O resultado final é apresentado em três faixas simples, facilitando uso prático:
+
+Escore IRAH–Premier	Classificação
+0 – 33	🟢 Baixo risco
+34 – 66	🟡 Risco moderado
+67 – 100	🔴 Alto risco
+
+Essa classificação é utilizada para gestão, rounds e monitoramento da unidade, não substituindo a avaliação clínica individual.
+
+⚠️ Identificação Automática de Riscos Assistenciais
+
+Além do escore global, o aplicativo identifica automaticamente riscos clínicos relevantes, com base nas escalas preenchidas.
+
+Os riscos atualmente mapeados incluem:
+
+🟠 Risco de queda
+Associado a:
+
+Fugulin elevado
+
+MRC reduzido
+
+Alta dependência funcional
+
+🟠 Risco de lesão por pressão (LPP)
+Associado a:
+
+Fugulin elevado
+
+Alterações de mobilidade
+
+Integridade cutâneo-mucosa comprometida
+
+🟠 Risco de broncoaspiração
+Associado a:
+
+FOIS ≤ 3
+
+Dependência para alimentação
+
+🟠 Risco nutricional
+Associado a:
+
+ASG B ou C
+
+Polifarmácia
+
+Redução de ingestão oral
+
+🟠 Risco medicamentoso
+Associado a:
+
+Polifarmácia progressiva
+
+Maior risco de delirium, quedas e interações medicamentosas
+
+👉 Esses riscos não alteram o cálculo do índice, mas orientam o plano terapêutico, intervenções específicas e a documentação assistencial (ex.: relatórios de prorrogação).
+
+🏥 Uso Assistencial do IRAH–Premier
+
+O índice pode ser utilizado para:
+
+Planejamento de rounds multiprofissionais
+
+Definição da intensidade de reabilitação
+
+Estratificação de risco para segurança do paciente
+
+Monitoramento da evolução clínica e funcional
+
+Apoio à elaboração de relatórios administrativos e assistenciais
+
+Avaliação diária do perfil assistencial da clínica

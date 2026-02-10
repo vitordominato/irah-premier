@@ -6,7 +6,7 @@ from io import BytesIO
 # PDF (ReportLab)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 
 # ============================================================
@@ -314,21 +314,30 @@ def safe_json_loads(s: str):
         return {}
 
 
-def build_pdf(df_simple: pd.DataFrame, summary: dict) -> bytes:
-    """Gera PDF apenas com colunas simples (sem dict/list), para evitar falhas."""
+def build_pdf(df_any: pd.DataFrame, summary: dict) -> bytes:
+    """Gera PDF em A4 paisagem com tabela-resumo enxuta:
+    Leito | Iniciais | IRAH | Classificação | Riscos (palavras-chave/ícones).
+    """
     buffer = BytesIO()
+
+    # Página em paisagem para melhor leitura
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
+        pagesize=landscape(A4),
         rightMargin=24,
         leftMargin=24,
         topMargin=24,
         bottomMargin=24,
     )
-    styles = getSampleStyleSheet()
-    elements = []
 
-    elements.append(Paragraph("IRAH–Premier — Relatório Assistencial", styles["Title"]))
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+    normal.fontName = "Helvetica"
+    normal.fontSize = 8
+    normal.leading = 9
+
+    elements = []
+    elements.append(Paragraph("IRAH–Premier — Relatório Assistencial (Resumo)", styles["Title"]))
     elements.append(Spacer(1, 8))
     elements.append(Paragraph("Resumo da unidade (20 leitos)", styles["Heading2"]))
 
@@ -340,7 +349,7 @@ def build_pdf(df_simple: pd.DataFrame, summary: dict) -> bytes:
         ["Distribuição", summary.get("distribuicao", "")],
         ["Complexidade global (pela média)", summary.get("complexidade_global", "")],
     ]
-    t_sum = Table(summary_rows, colWidths=[180, 330])
+    t_sum = Table(summary_rows, colWidths=[170, 530])
     t_sum.setStyle(
         TableStyle(
             [
@@ -353,24 +362,96 @@ def build_pdf(df_simple: pd.DataFrame, summary: dict) -> bytes:
         )
     )
     elements.append(t_sum)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 14))
 
-    elements.append(Paragraph("Lista de pacientes", styles["Heading2"]))
+    elements.append(Paragraph("Tabela-resumo de pacientes", styles["Heading2"]))
     elements.append(Spacer(1, 6))
 
-    cols = list(df_simple.columns)
-    table_data = [cols] + df_simple.astype(str).values.tolist()
+    # Seleciona colunas essenciais (tolerante a ausência)
+    col_map = {
+        "Leito": "Leito",
+        "Iniciais": "Iniciais",
+        "IRAH_Premier": "IRAH",
+        "Risco": "Classificação",
+        "Riscos_identificados": "Riscos",
+    }
 
-    t = Table(table_data, repeatRows=1)
+    # monta df enxuto
+    df_pdf = pd.DataFrame()
+    for src, dst in col_map.items():
+        if src in df_any.columns:
+            df_pdf[dst] = df_any[src]
+        else:
+            df_pdf[dst] = ""
+
+    # Formata IRAH
+    if "IRAH" in df_pdf.columns:
+        df_pdf["IRAH"] = pd.to_numeric(df_pdf["IRAH"], errors="coerce").round(1).fillna("")
+
+    # Gera uma versão curta e com ícones para os riscos
+    def _risk_icon(level: str) -> str:
+        level = (level or "").strip().capitalize()
+        if level == "Alto":
+            return "🔴"
+        if level == "Moderado":
+            return "🟡"
+        if level == "Baixo":
+            return "🟢"
+        return "•"
+
+    def _short_risks(riscos_str: str) -> str:
+        # Esperado: "Queda: Alto | Lesão por pressão: Moderado | ..."
+        if not riscos_str:
+            return ""
+        parts = [p.strip() for p in str(riscos_str).split("|") if p.strip()]
+        out = []
+        for p in parts:
+            if ":" in p:
+                k, v = [x.strip() for x in p.split(":", 1)]
+                out.append(f"{_risk_icon(v)} {k}")
+            else:
+                out.append(p)
+        return "  ".join(out)
+
+    df_pdf["Riscos"] = df_pdf["Riscos"].apply(_short_risks)
+
+    # Ordena por leito
+    if "Leito" in df_pdf.columns:
+        df_pdf["Leito"] = pd.to_numeric(df_pdf["Leito"], errors="coerce")
+        df_pdf = df_pdf.sort_values("Leito", na_position="last")
+
+    # Converte células longas para Paragraph para permitir quebra de linha
+    header = list(df_pdf.columns)
+    table_data = [header]
+    for _, row in df_pdf.iterrows():
+        r = []
+        for col in header:
+            val = "" if pd.isna(row[col]) else str(row[col])
+            if col == "Riscos":
+                # Permite quebra de linha automática no PDF
+                val = Paragraph(val.replace("  ", "<br/>"), normal)
+            r.append(val)
+        table_data.append(r)
+
+    # Larguras pensadas para A4 paisagem
+    col_widths = [45, 60, 55, 85, 455]  # Leito, Iniciais, IRAH, Classificação, Riscos
+
+    t = Table(table_data, colWidths=col_widths, repeatRows=1)
     t.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 9),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 1), (-1, -1), 8),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
             ]
         )
     )
@@ -623,21 +704,13 @@ with tab_calc:
     if st.session_state.patients:
         df = pd.DataFrame(st.session_state.patients)
 
-        display_cols = [
-            "Leito",
-            "Iniciais",
-            "IRAH_Premier",
-            "Risco",
-            "Riscos_identificados",
-            "Gatilho_Alto",
-            "Fugulin_total",
-            "Fugulin_classificacao",
-            "Charlson_total",
-            "MRC",
-            "ASG",
-            "FOIS",
-            "Polifarmacia",
-        ]
+display_cols = [
+    "Leito",
+    "Iniciais",
+    "IRAH_Premier",
+    "Risco",
+    "Riscos_identificados",
+]
 
         df = df.reindex(columns=display_cols + ["Fugulin_detalhes_json", "Charlson_detalhes_json"], fill_value="")
         df["Leito"] = pd.to_numeric(df["Leito"], errors="coerce")
@@ -674,7 +747,7 @@ with tab_calc:
         # CSV completo
         st.download_button(
             "⬇️ Baixar CSV completo (clínica)",
-            data=df.to_csv(index=False).encode("utf-8"),
+            data=df[display_cols].to_csv(index=False).encode("utf-8"),
             file_name="irah_premier_clinica.csv",
             mime="text/csv",
             use_container_width=True,

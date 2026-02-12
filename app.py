@@ -704,13 +704,13 @@ with tab_calc:
     if st.session_state.patients:
         df = pd.DataFrame(st.session_state.patients)
 
-display_cols = [
-    "Leito",
-    "Iniciais",
-    "IRAH_Premier",
-    "Risco",
-    "Riscos_identificados",
-]
+        display_cols = [
+            "Leito",
+            "Iniciais",
+            "IRAH_Premier",
+            "Risco",
+            "Riscos_identificados",
+        ]
 
         df = df.reindex(columns=display_cols + ["Fugulin_detalhes_json", "Charlson_detalhes_json"], fill_value="")
         df["Leito"] = pd.to_numeric(df["Leito"], errors="coerce")
